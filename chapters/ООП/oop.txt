@@ -1,0 +1,286 @@
+class Persone:
+    def __init__(self):
+        ...
+p = Persone()
+print(p) #__main__
+
+class Person:
+    planet = 'Earth'
+
+    __init__(self, name):
+        self.name = name
+
+Мы не ожем сделать вот так:
+Person.name
+
+Но можем сделать вот так:
+Person.planet
+
+Вызывается cначало магический метод __new__, который принимает на вход называние класса его позиционированные и именованные аргументы в неизвестном количестве, потом вызывается магический метод __init__
+Метод __new__ пишется так:
+
+def __new__(cls, *args, **kwargs):
+    return suoer().__new__(cls) обращаемся к папе и говорим ему создай меня
+
+Как работает?
+
+person = Person.__new__(Person)
+person = Person.__init__(p, name='George')
+
+Объявили метод:
+
+def song(self, song='lalala'):
+    print(song)
+
+Мы можем вызвать его двумя способами:
+p.song()
+Person.song(p, song='lalalala')
+
+
+
+
+
+
+
+
+
+
+
+Инкапсуляция в питоне работает только с приват, то есть с двумя нижними _, но всё равно есть способ: persone._Person__secret Также и с методами
+Цель инкапсуляции менять сосотояние через действие.
+
+
+
+super() -- родительский класс
+
+Иллюстрация правильного наследования:
+
+
+class A:
+    def present(self):
+        print('B')
+
+
+class B:
+    def present(self):
+        print('B')
+
+
+class C(A, B):
+    def present(self):
+        print('C')
+
+
+class D(B, A):
+    def present(self):
+        print('D')
+
+
+class MetaMRO(type):
+    def mro(cls):
+        return (A, cls, B, D, C, object) #определяет порядо выполнения наследования
+
+
+class E(D, C, metaclass=MetaMRO): #он не будет знать от кого переопределять метод, поскольку они сами наследуются от классов с этими методами. Чтобы избежать ошибки, пишется класс MetaMRO
+    def present(self):
+        print('E')
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Лексический анализатор -- не написал ли пользователь лишнего?
+
+
+У нас есть два класса кошки и собаки, которые наследуются от животных, у которого есть говорящий метод. Каждый класс этот метод переопределяет метод: собака гав-гав, кошка мяу-мяу.
+Теперь нам нужно сделать метод, автоматически определяющий класс животного и выводящего говорящий метод.
+
+animal = {
+    'Dog': Dog
+    'Cat: Cat
+}
+
+main(animal):
+    return [animal].talk()
+
+main('Dog') # гав-гав
+main('Cat') № мяу-мяу
+
+Абстрактные методы можно использовать как интерфейсы
+
+Чтобы создать абстрактный класс, нужно импортировать модуль ABC и пометить хоть оди метод абстрактным
+
+from abc import ABS, abstractmethod
+
+class Animal(ABc):
+    def __init__(self, name):
+        self.name = name
+
+    @abstractmethod
+    def talk():
+        print('Я животное')
+
+Теперь все дочерние классы должны этот метод определять, иначе экземпляр класса не создастся. Метод __init__ переопределять не нужно.
+
+
+
+
+
+
+
+
+
+
+Какие методы и приемы сделают код более понятным
+
+Раннее связывание -- статические методы связываются с классом напрямую в момент работы программы
+Динамическое связываение -- это когда метод связывается через экземпляр класса с его атрбутами
+
+Как создать статический метод?
+
+class plus:
+    @staticmethod
+    def plus(x, y):
+        RETURN X + Y
+
+class Age:
+    age = 15
+    def __init___(self, age):
+        self.age = age
+    
+    def show(cls):
+        return cls.age
+
+a = Age(25)
+print(a.age, a.show())
+
+Выведится 25 и 25, потому что cls смотрит на экземпляр класса, номожно поставить @classmethod. cls воспринимается как self
+
+class Age:
+    age = 15
+    def __init___(self, age):
+        self.age = age
+    
+    @classmethod
+    def show(cls):
+        return cls.age
+
+a = Age(25)
+print(a.age, a.show())
+
+Выведится 25 и 15
+
+
+А что будет, если нужно посчитать количество созданных объектов?
+
+class Person:
+    count = 0
+
+    def __new__(cls):
+        cls.count += 1
+        return super().__new__(cls)
+
+
+
+
+Геттеры и сеттеры
+
+Можно, конечно, написать get и setter:
+
+class Person:
+    def __init__(self, name, age):
+        self.name = name
+        self.age = age
+    
+
+    def get_name(self):
+        return self.name
+    def get_age(self):
+        return self.age
+
+    def set_name(self):
+        self.name = name
+    def set_age(self):
+        self.age = age
+
+
+так удобней, нежели чем так:
+
+class Person:
+    def __init__(self, name, age):
+        self.__name = name
+        self.__age = age
+    
+    @property
+    def name(self):
+        return self.__name
+    @property
+    def age(self):
+        return self.__age
+
+    @name.setter
+    def name(self):
+        self.__name = name
+    @age.setter
+    def age(self):
+        self.__age = age
+
+
+
+Магические методы
+
+class TwoDiv:
+  def __init__(self, value):
+    self.value = value
+
+  def __str__(self):
+    return str(self.value)
+
+  def __add__(self, other):
+    return TwoDiv(self.value + other.value)
+
+  def __eq__(self, other):
+    return self.value == other.value
+
+  def __iter__(self):
+    return self
+
+    итер и некст связаны в цикле
+
+  def __next__(self):
+    if self.value > 0:
+      self.value //= 2
+      return self.value
+    raise StopIteration
+
+  def __len__(self):
+    return 1
+
+
+
+
+Шаблоны проектирования
+
+Как создать синглтон?
+
+class Earth:
+    def __new__(cls, *args, **kwargs):
+        if not hasattr(cls, 'instance'):
+            cls.instance = super().__new__(cls)
+            return cls.instance
+        return cls.instance # если объект существует
+
+    def __init__(self, name):
+        self.name = name
+

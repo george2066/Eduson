@@ -1,0 +1,517 @@
+Лямбда функции, анонимные функции - функции, не имеющие имени
+lambda (args): body function
+
+То есть функция в переменной
+plus_one = lambda x: x + 1 (return нету)
+
+Пример с несколькими переменными
+adder = lambda x, y, z: x + y + z
+
+Пример без переменных
+PI = lambda: 3.14
+
+Что нельза использовать в лямбде?
+return
+assert
+pass (но можно ...)
+raise
+
+Декларативный стиль написания кода с циклами, условиями и прочим устарел. 
+Что мы делали, если нам нужно взять из списка только чётные выражения?
+l = [1, 2, 3, 4, 5, 6]
+l2 = []
+
+for el in l:
+    if el % 2 == 0:
+        l2.append(el)
+
+Но есть функция filter
+list(filter(lambda x: x % 2 == 0, l))
+
+map + lambda
+А если мы хотим возвести каждый элемент в квадрат?
+l = [1, 2, 3, 4, 5, 6]
+list(map(lambda x: x ** 2, l))
+
+Привести к числовому типу
+lst = [1, '1.5', '1.43e+1', 4.35]
+integering = lambda x: x if isinstance(x, (int, float)) else eval(x)
+print(map(integering, lst))
+
+А если несклько листов?
+l1 = [1, 2, 3]
+l2 = [3, 2, 1]
+print(lambda x, y: x > y, l1, l2)
+
+reduce + lambda
+from functools import reduce
+l = [1, 2, 3, 4, 5, 6]
+print(reduce(lambda x, y: x + y, l)) -- находит сумму листа
+
+Если вложенные списки, то как?
+lst = [["And", 3], ["Joe", 5], ["Mary", 4]]
+sorted(lst) -- отсортирует по алфавиту, потому что строковый тип данных встретится первей числового.
+sorted(lst, key = lambda people: people[1])
+
+Если у нас есть словарь со вложенными словарями и нам нужно найти максимальное значение для каждого словаря, то:
+
+list(map(lambda x: max(x, key = x.get), d.values())) -- он нам выдаст ключи с максимальным значением каждого словаря
+
+Как проверить, что перед нами лямбда-функция?
+from type import LambdaType
+integering = lambda x: x if isinstance(x, (int, float)) else eval(x)
+print(isinstance(integering, LambdaType))
+Для def тоже работает, потому что это тоже функция
+
+from math import sin
+list(map(sin, lst))
+
+
+
+
+
+
+
+
+
+
+List comprehension
+Генератор списка
+
+Супер вещ!
+
+[sin(el) for el in lst]
+
+Если в списке 50 элементов и и нужно заменить все элементы на 5, то:
+[5 for _ in lst]
+Вот с помощью маппера это не сделать.
+
+А как быть с условиями?
+[5 for _ in lst if lst.index(_) % 2 == 0]
+Но если еть else
+[2 if lst.index(_) % 2 == 0 else 3 for _ in lst]
+Тогда условие ставим после элемента списка
+
+А если вложенные списки?
+Легко!
+lst = [[1,2,3],[],[4,5,6],[7,8,9]]
+Что? Все числа в один список сохранить? Можно сделать так:
+retsult = []
+for subarr in lst:
+    for el in subarr:
+        result.append(el)
+Долго? Конечно долго!
+[el for subarr in lst for el in subarr]
+
+Тем более функция append имеет константное время выполнения
+
+вот функция, идеально подходящее для демонстрации этого урока
+
+num_metall = [1, 2, 1, 4, 2]
+correct = lambda gramm: gramm.replace(" гр", '') if type(gramm) == str else gramm
+gramms = [correct(gramm) for gramm in [400, '100 гр', 12.5, 44, 65]]
+mettal = {
+    1: "Платина",
+    2: "Золото",
+    3: "Серебро",
+    4: "Бронза"
+}
+
+result = [f"{mettal[num]} {gramm}" for num, gramm in zip(num_metall, gramms)]
+for m in result:
+    print(m)
+
+Со словарями и множествами то же самое, только скобки другие и в словаре не el в начале указывается, а k: v, то есть:
+
+{k: v for k, v in enumirate(dict)}
+
+
+
+
+
+
+
+
+
+
+
+
+
+Как использовать zip_longest?
+
+Можно так:
+for x, y, z in zip_longest(num_list1, num_list2, num_list3, fillvalue=0):
+    print(x, y, z)
+
+А можно через генераторы
+result = [(x, y, z) for x, y, z in zip_longest(num_list1, num_list2, num_list3, fillvalue=0)]
+
+
+
+
+
+
+
+
+
+
+
+
+Отличия итератора от итерируемого объекта
+Итерируемый объект имеет метод __iter__ для итератора, который проходится по объектам. При том, если там 
+не оперделить метод __getitem__, которая проверяет наличие следующего элемента при итерации, то выкинется сключение StopIteration
+
+Генератор -- функция, которая генерирует значение
+
+Генератор работает только тогда, когда мы его вызываем:
+
+def pow(x):
+    while True:
+        yield x**2
+        x += 1
+
+Пишешь список, заполненный числами от 0 до 10
+[element for element in range(10)]
+
+Но поставил вместо квадратных круглые скобки
+(element for element in range(10)) -- и получил хеш генератора, но если его сохранить в переменную и эту переменную постоянно вызывать, то бует генерировать ся сначало 1, потом 2 и так далее
+
+ТЕм более генераторы продуктивней. В то время, как списой проитерируется весь и только потом найдётнеобходимое значение, итератор гетератора останавливается на найденном
+%timeit any([x > 100 for x in range(1000000)]) -- проитерируется весь
+%timeit any((x > 100 for x in range(1000000))) -- закончит итерацию на найтенном
+
+А времяэто из юпитера
+
+
+
+
+
+
+
+Как работать с исключениями?
+try except
+
+try:
+    print(1 / 0)
+except Exception as error:
+    print(error)
+
+Если нужно полное представление ошибки, то нужно писать repr(error)
+
+Можно ещё else или finnaly добавить
+
+try: отлавливаем ошибку
+except: обрабатываем её
+else: если ошибки нет, то после выполнения блока try выполняем else
+finnaly: а он всегда выполняется
+
+Если надо в функции выкинуть исключение, тогда 
+def integer(integer):
+    if isinstance(integer):
+        return integer
+    raise TypeError
+
+
+
+
+
+
+
+    Оператор *
+
+    Распаковка объектов
+    l = [1,2,3,4,5]
+    a, *b = l -- 1 сохранится в а, остальное в b
+
+    Если есть четыре переменные с разными структурами (список, множество, словарь, кортеж), то можно их объединить с помощью звезды:
+    print(a*, b*, c*, d*)
+
+Как объединить два словаря?
+print(**d1, **d2)
+
+def foo(a, b, c, *, d, e, f) -- то есть вот после * нужно обязв=ательно аргументы именовать
+
+
+
+
+
+
+
+
+Работа с датой и временем
+import datetime
+
+dt = date(2021, 11, 10) -- сконтруировали дату (год, месяц, день)
+dt.year
+td.month
+dt.day
+dt.weekday -- какой день недели?
+
+date.today() --сегодня
+
+dt.strftime('%d/%m/%Y') -- дата в таком вормате
+
+
+Делаем из строки дату
+datetime(2021, 11, 10, 20, 56, 30, 324) -- в плоть до микросекунд
+dt = '2021, 11, 10'
+datetime.strptime('%Y, %m, %d)
+
+Также со временем: %H и %M
+strptime не в date
+
+ts = datetime.timestep(dt) -- сколько секнд прошло с 1970 года по дату dt
+fs = datetime.fromtimestep(ts) -- на какую дату ведут секнды?
+
+
+
+
+Как быть с временными зонами?
+
+import pytz
+
+pytz.all_timezones - сколько часовых зон вообще?
+pytz.timezone('Europa/Moskow') -- получить часовую зону москвы
+Вычитать оператором, а складывать с помощью timedelta(day=30)
+total_time() - количество секунд во времени, указанному в атрибутах
+
+А есть ещё модуль time 
+import time 
+time.sleep(2) -- засни на две секунды
+
+
+Directive
+				Meaning
+				Example
+		
+
+	
+	
+		
+			%a
+				Abbreviated weekday name.
+				Sun, Mon, ...
+		
+
+		
+			%A
+				Full weekday name.
+				Sunday, Monday, ...
+		
+
+		
+			%w
+				Weekday as a decimal number.
+				0, 1, ..., 6
+		
+
+		
+			%d
+				Day of the month as a zero-padded decimal.
+				01, 02, ..., 31
+		
+
+		
+			%-d
+				Day of the month as a decimal number.
+				1, 2, ..., 30
+		
+
+		
+			%b
+				Abbreviated month name.
+				Jan, Feb, ..., Dec
+		
+
+		
+			%B
+				Full month name.
+				January, February, ...
+		
+
+		
+			%m
+				Month as a zero-padded decimal number.
+				01, 02, ..., 12
+		
+
+		
+			%-m
+				Month as a decimal number.
+				1, 2, ..., 12
+		
+
+		
+			%y
+				Year without century as a zero-padded decimal number.
+				00, 01, ..., 99
+		
+
+		
+			%-y
+				Year without century as a decimal number.
+				0, 1, ..., 99
+		
+
+		
+			%Y
+				Year with century as a decimal number.
+				2013, 2019 etc.
+		
+
+		
+			%H
+				Hour (24-hour clock) as a zero-padded decimal number.
+				00, 01, ..., 23
+		
+
+		
+			%-H
+				Hour (24-hour clock) as a decimal number.
+				0, 1, ..., 23
+		
+
+		
+			%I
+				Hour (12-hour clock) as a zero-padded decimal number.
+				01, 02, ..., 12
+		
+
+		
+			%-I
+				Hour (12-hour clock) as a decimal number.
+				1, 2, ... 12
+		
+
+		
+			%p
+				Locale’s AM or PM.
+				AM, PM
+		
+
+		
+			%M
+				Minute as a zero-padded decimal number.
+				00, 01, ..., 59
+		
+
+		
+			%-M
+				Minute as a decimal number.
+				0, 1, ..., 59
+		
+
+		
+			%S
+				Second as a zero-padded decimal number.
+				00, 01, ..., 59
+		
+
+		
+			%-S
+				Second as a decimal number.
+				0, 1, ..., 59
+		
+
+		
+			%f
+				Microsecond as a decimal number, zero-padded on the left.
+				000000 - 999999
+		
+
+		
+			%z
+				UTC offset in the form +HHMM or -HHMM.
+				 
+		
+
+		
+			%Z
+				Time zone name.
+				 
+		
+
+		
+			%j
+				Day of the year as a zero-padded decimal number.
+				001, 002, ..., 366
+		
+
+		
+			%-j
+				Day of the year as a decimal number.
+				1, 2, ..., 366
+		
+
+		
+			%U
+				Week number of the year (Sunday as the first day of the week). All days in a new year preceding the first Sunday are considered to be in week 0.
+				00, 01, ..., 53
+		
+
+		
+			%W
+				Week number of the year (Monday as the first day of the week). All days in a new year preceding the first Monday are considered to be in week 0.
+				00, 01, ..., 53
+		
+
+		
+			%c
+				Locale’s appropriate date and time representation.
+				Mon Sep 30 07:06:05 2013
+		
+
+		
+			%x
+				Locale’s appropriate date representation.
+				09/30/13
+		
+
+		
+			%X
+				Locale’s appropriate time representation.
+				07:06:05
+		
+
+		
+			%%
+				A literal '%' character.
+				%
+
+
+
+
+
+
+
+
+Регулярки
+
+[А-яA-z0-9\- .$/]* -- взять все символы от А до я, от A до z, от 0 до 9, знак - (экранированный), пробел, ., ;, /. Но он выведет каждый символ по отдельности, а если надо всё, тогда в конце ставится *
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

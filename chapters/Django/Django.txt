@@ -1,0 +1,994 @@
+Чтобы создать проект Django
+django-admin startproject <name_project> (именно им я создал папку todo с папкой todo)
+
+Регистрация
+
+Нужен класс, который мы будем регистрировать
+django-admin startapp users
+
+Дальше переходим в файл users\models.py и создаём юзера
+
+from django.contrib.auth.models import AbstractUser
+
+# Create your models here.
+class User(AbstractUser):
+    pass
+
+Теперь нужно подключить модель в качестве основной в todo\settings.py
+
+# Authentication settings
+
+AUTH_USER_MODEL = "user.Users"
+
+Дальше в том же файле добавляем приложение в INSTALLED_APPS
+
+INSTALLED_APPS = [
+    'django.contrib.admin',
+    'django.contrib.auth',
+    'django.contrib.contenttypes',
+    'django.contrib.sessions',
+    'django.contrib.messages',
+    'django.contrib.staticfiles',
+    'users', !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+]
+
+Всё мы правильно сделали? Давайте проверим:
+
+python manage.py makemigrations -n 'create_model_user'
+
+Если консоль не кричит, то всё нормально.
+
+Теперь нам нужно установить django-allauth
+
+poetry add django-allauth
+
+Дальше переходим на https://django-allauth.readthedocs.io/en/latest/installation/quickstart.html и сверяем свой settings с settings на сайте
+
+Если короче, нужно добавить следующее:
+(INSTALLED_APPS)
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+
+(новая переменная AUTHENTICATION_BACKENDS под AUTH_USER_MODEL)
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
+]
+
+Дальше отключаем верификацию по email в settings.py
+
+ACCOUNT_EMAIL_VERIFICATION = "none"
+
+Дальше в файл todo\urls.py копируем следующее:
+
+urlpatterns = [
+    ...
+    path('accounts/', include('allauth.urls')),
+    ...
+]
+
+(в итоге в файле urls)
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
+]
+
+Теперь проверим работу сайта
+Вышла ошибка!
+django.core.exceptions.ImproperlyConfigured: allauth.account.middleware.AccountMiddleware must be added to settings.MIDDLEWARE
+Значит нужно добавить в переменную MIDDLEWARE в settings.py библиотеку allauth.account.middleware.AccountMiddleware
+
+MIDDLEWARE = [
+    'django.middleware.security.SecurityMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
+    'django.middleware.common.CommonMiddleware',
+    'django.middleware.csrf.CsrfViewMiddleware',
+    'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django.contrib.messages.middleware.MessageMiddleware',
+    'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'allauth.account.middleware.AccountMiddleware', !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+]
+
+Переходим по предлагаемой ссылке и видим ошибку:
+OperationalError at /accounts/login/
+Потому что мы забыли зафиксировать миграции
+python manage.py migrate
+
+И перезапустим проект:
+python manage.py runserver (дальше буду писать "запустим программу", подразумевая вот это)
+
+
+
+
+
+
+
+
+
+
+
+Задачи
+
+Команда
+
+django-admin startapp tasks
+
+В моделях созданной папки создаём список задач:
+
+from django.db import models
+
+from users.models import User
+
+
+# Create your models here.
+class TodoList(models.Model):
+    title = models.CharField(max_length=100)
+    owner = models.ForeignKey(User, models.CASCADE)
+
+    def __str__(self):
+        return self.title
+
+А затем и сами задачи
+
+class TodoItem(models.Model):
+    title = models.CharField(max_length=100)
+    description = models.CharField(max_length=255, null=True, blank=True)
+    created_date = models.DateTimeField(auto_now_add=True)
+    due_date = models.DateTimeField(null=True, blank=True)
+
+    todo_list = models.ForeignKey(TodoList, models.CASCADE)
+
+    def __str__(self):
+        return f'{self.title} due: {self.due_date if self.due_date else "whenever"}'
+
+Дальше подключаем наш app в settings.py, как мы это делали с users.
+
+И делаем миграции:
+python manage.py makemigrations -n 'created_tasks_model'
+
+И зафиксируем её сразу:
+python manage.py migrate
+
+(дальше я буду говорить "сделаем/зафиксируем миграции", подразумевая эту конструкцию)
+
+Дальше нужно зарегистрировать модели на админ-панели сайта в файле tasks\admin.py
+admin.site.register(TodoList)
+admin.site.register(TodoItem)
+
+Давайте сделаем create super user admin
+python manage.py createsuperuser
+
+admin
+admin@admin.com
+admin
+
+Запустим программу.
+Переходим http://127.0.0.1:8000/admin.
+Вводим данные.
+
+
+
+
+
+
+
+
+
+
+
+
+Показ товаров и списков пользователя
+
+В файле tasks\models.py пропишем менеджера для списков
+
+class TodoListManager(models.Manager):
+    def for_user(self, user):
+        return self.get_queryset().filter(owner=user)
+
+
+И подключим его к TodoList
+
+objects = TodoListManager()
+
+Теперь создадим view в файле tasks\views.py
+
+from django.views.generic import ListView
+
+from tasks.models import TodoList
+
+# Create your views here.
+class TodoListListView(ListView):
+    def get_queryset(self):
+        return TodoList.objects.for_user(self.request.user)
+
+Теперь запретим доступ к спискам задач для неавторизованных пользователей простым наследованием того же класса от LoginRequiredMixin и созданием для него переменной...
+login_url = reverse_lazy('account_login')
+
+
+
+
+
+
+
+
+
+Делаем шаблоны
+
+В settings в переменной TEMPLATE в ключе DIR указываем папку templates, которую мы создадим вместе с файлом base.html, в который впишем следующее:
+<body>
+{% block content %}
+{% endblock %}
+</body>
+(бланк HTML опущен)
+
+И создадим в папке templates папку tasks, в которой создадим файл index.html со следующим содержимым:
+{% extends 'base.html' %}
+
+{% block content %}
+
+{% if object_list %}
+<h3>All my list</h3>
+<ul>
+    {% for todo_list in object_list %}
+    <li>
+        <div role="button" onclick="#">{{ todo_list.title }}</div>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<h3>You haven`t lists</h3>
+{% endif %}
+
+{% endblock %}
+
+Дальше в менеджере списков, котоый мы с вами создали на предыдущем шаге, добавим следующее:
+template_name = 'tasks\index.html'
+
+Дальше добавим файл urls.py в наше приложение tasks со следующим содержимым:
+from django.urls import path
+
+from tasks.views import TodoListListView
+
+urlpatterns = [
+    path("", TodoListListView.as_view(), name='list')
+]
+
+Теперь добавим urls tasks в наше приложение, как мы это делали с регистрацией:
+path("", include('tasks.urls'))
+
+
+Теперь также добавим view для TodoItem:
+
+Вначале делаем менеджера:
+class TodoItemListView(LoginRequiredMixin, ListView):
+    login_url = reverse_lazy('account_login')
+
+    def get_queryset(self):
+        todo_list = TodoList.objects.for_user(self.request.user).filter(pk=self.kwargs['list_id'])
+        if todo_list is None:
+            raise PermissionDenied()
+        return TodoItem.objects.filter(todo_list_id=self.kwargs['list_id'])
+
+Теперь создадим todo_list.html в папке templates\tasks со следующим содержимым:
+
+{% extends 'base.html' %}
+{% block content %}
+<div>
+    <div>
+        <h3>Edit list:</h3>
+        <h5>{{ todo_list | upper }}</h5>
+    </div>
+    <ul>
+        {% for todo in object_list %}
+        <li>
+            <div>
+                {{ todo.title }}
+                {% if todo.due_date %}
+                (Due {{ todo.due_date }}
+                {% endif %}
+            </div>
+        </li>
+        {% empty %}
+        <h5>You haven`t tasks in this list</h5>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
+
+Теперь в классе TodoItemListView сделаем следующую переменную:
+template_name = 'tasks\todo_list.html'
+
+Теперь нужно сделать интерпейджинг между index и todo_list:
+location.href='{% url "list" todo_list.id %}' в onclick
+
+
+
+
+
+
+
+
+
+
+
+
+
+Добавить возможность добавления сущностей
+
+Сделаем класс TodoListCreateView со следующими параметрами:
+
+class TodoListCreateView(LoginRequiredMixin, CreateView):
+    model = TodoList
+    fields = ['title']
+
+    def form_valid(self, form):
+        form.instance.owner = self.request.user
+        return super().form_valid(form)
+
+Дальше перейдём в урлы нашего приложения и пропишем следующее:
+
+urlpatterns = [
+    path("", TodoListListView.as_view(), name='index'),
+    path("list/<int:list_id>/", TodoItemListView.as_view(), name='list'),
+    path("list/add/", TodoListCreateView.as_view(), name='list-add'), !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+]
+
+Теперь нужно сделать кнопку "добавить лист" index.html перед закрытием блока:
+<p>
+    <input value="Add a new list" type="button" onclick="location.href='{% url "list-add" %}'"/>
+</p>
+
+Создадим файл todolist_form.html со следующим содержимым:
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>{{ title }}</h3>
+<div>
+  <form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <input value="Submit" type="submit">
+    <input value="Cancel" type="button" onclick="location.href='{% url "index" %}'">
+  </form>
+</div>
+{% endblock %}
+
+Чтобы отправить данные, нужно в классе TodoListManager переопределить метод get_absolute_url:
+
+from django.urls import reverse
+
+def get_absolute_url(self):
+    return reverse('list', args=[self.pk])
+(вставьте это в класс TodoList, а не во вне)
+
+Теперь нам нужно добавить форму создания для TodoItem тем же самым способом:
+Создадим класс:
+class TodoItemCreateView(LoginRequiredMixin, CreateView):
+    model = TodoItem
+    fields = [
+        'todo_list',
+        'title',
+        'description',
+        'due_date',
+    ]
+
+    def get_initial(self):
+        initial_data = super().get_initial()
+        todo_list = TodoList.objects.for_user(self.request.user).get(id=self.kwargs['list_id'])
+        initial_data['todo_list'] = todo_list
+        return initial_data
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        todo_list = TodoList.objects.get(pk=self.kwargs["list_id"])
+        context['todo_list'] = todo_list
+        context['title'] = 'Create a new item'
+        return context
+
+Теперь мы должны определить метод для перехода на другую страницу, если создание задачи успешно в том же классе:
+
+    def get_success_url(self):
+        return reverse('list', args=self.object.todo_list_id)
+
+Ну и конечно в урлы добавим путь:
+urlpatterns = [
+    path("", TodoListListView.as_view(), name='index'),
+    path("list/<int:list_id>/", TodoItemListView.as_view(), name='list'),
+    path("list/add/", TodoListCreateView.as_view(), name='list-add'),
+    path('list/<int:list_id>/item/add/', TodoItemCreateView.as_view(), name='item-add')!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+]
+
+Теперь нам нужен шаблон для отображения формы в файле todoitem_form.html с таким текстом:
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>{{ title }}</h3>
+<form method="post">
+    {% csrf_token %}
+    <table>
+      {{ form.as_table }}
+    </table>
+    <input value="Submit" type="submit">
+    <input value="Cancel" type="button" onclick="location.href='{% url "list" todo_list_id %}'">
+</form>
+{% endblock %}
+
+Также добавить в todo_list.html следующее:
+(в блоке div)
+<p>
+    <input value="Add a new task" type="button" onclick="location.href='{% url "item-add" todo_list.id %}'"/>
+</p>
+
+Также добавим в TodoItemListView следующий метод:
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data(object_list=object_list, **kwargs)
+        todo_list = TodoList.objects.get(pk=self.kwargs["list_id"])
+        context['todo_list'] = todo_list
+        return context
+
+Добавим форматирование для добавления даты в форму в классе TodoItemCreateView:
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['due_date'].widget = forms.SelectDateWidget()
+        return form
+
+
+
+
+
+
+
+
+
+
+
+
+Обновление задач
+
+Сделаем класс TodoItemUpdateView со следующим содержимым:
+class TodoItemUpdateView(LoginRequiredMixin, UpdateView):
+    model = TodoItem
+    fields = [
+        'todo_list',
+        'title',
+        'description',
+        'due_date',
+    ]
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['todo_list'] = self.object.todo_list
+        context['title'] = 'Update item'
+        return context
+
+    def get_success_url(self):
+        return reverse("list", args=[self.object.todo_list_id])
+
+Добавим так же в урлы:
+path("list/<int:list_id>/item/<int:pk>/", TodoItemUpdateView.as_view(), name='item-update'),
+
+И добавим в onclick todo_list.html ссылку:
+
+{% extends 'base.html' %}
+{% block content %}
+<div>
+    <div>
+        <h3>Edit list:</h3>
+        <h5>{{ todo_list | upper }}</h5>
+    </div>
+    <ul>
+        {% for todo in object_list %}
+        <li>
+            <div role="button" onclick="location.href='{%url "item-update" todo_list.id todo.id %}'">!!!!!!!!!!!!!!!!1
+                {{ todo.title }}
+                {% if todo.due_date %}
+                (Due {{ todo.due_date }})
+                {% endif %}
+            </div>
+        </li>
+        {% empty %}
+        <h5>You haven`t tasks in this list</h5>
+        {% endfor %}
+    </ul>
+    <p>
+        <input value="Add a new task" type="button" onclick="location.href='{% url "item-add" todo_list.id %}'"/>
+    </p>
+</div>
+{% endblock %}
+
+
+
+
+
+
+
+
+Добавим удаление листа
+
+Сделаем класс TodoListDeleteView со следующими данными:
+
+class TodoListDeleteView(LoginRequiredMixin, DeleteView):
+    model = TodoList
+    success_url = reverse_lazy('index')
+
+    def get_queryset(self):
+        return TodoList.objects.for_user(self.request.user)
+
+Добавим урл:
+path('list/<int:pk>/delete/', TodoListDeleteView.as_view(), name='list-delete'),
+
+Создадим шаблон для подтверждения удаления todolist_confirm_delete.html со следующим содержимым:
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>Delete list</h3>
+<p>Are you sure you want to delete {{ object.title }}?</p>
+<form method="post">
+    {% csrf_token %}
+    <input value="Delete" type="submit">
+    <input value="Cancel" type="button" onclick="location.href='{% url "index" %}'">
+</form>
+{% endblock %}
+
+И в todo_list.html добавим другую кнопку:
+
+    <p>
+        <input value="Delete list" type="button" onclick="location.href='{% url "list-delete" todo_list.id %}'"/>
+    </p>
+
+
+
+
+
+
+
+
+
+Удаление Задач
+
+Создадим класс TodoItemDeleteView со следующим содержимым:
+class TodoItemDeleteView(LoginRequiredMixin, DeleteView):
+    model = TodoItem
+
+    def get_success_url(self):
+        return reverse_lazy('list', args=[self.kwargs['list_id']])
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['todo_list'] = self.object.todo_list
+        return context
+
+    def get_queryset(self):
+        todo_list = TodoList.objects.for_user(self.request.user).filter(pk=self.kwargs['list_id'])
+        if todo_list is None:
+            raise PermissionDenied()
+        return TodoItem.objects.filter(todo_list_id=self.kwargs['list_id'])
+
+
+Добавим урл:
+path('list/<int:list_id>/item/<int:pk>/delete', TodoItemDeleteView.as_view(), name='item-delete'),
+
+Создадим страницу подтверждения удаления точно так же:
+{% extends 'base.html' %}
+
+{% block content %}
+<h3>Delete item</h3>
+<p>Are you sure you want to delete {{ object.title }} from {{ todo_list.title }}?</p>
+<form method="post">
+    {% csrf_token %}
+    <input value="Delete" type="submit">
+    <input value="Cancel" type="button" onclick="location.href='{% url "list" todo_list.id %}'">
+</form>
+{% endblock %}
+
+И добавим кнопку на удаление в условии для todoitem_form.html:
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+API на Django
+
+Установим библиотеки:
+poetry add django-rest-framework markdown
+
+Создадим приложение API:
+django-admin startapp api
+
+Создадим serializers.py в приложении api со следующим содержимым:
+from rest_framework import serializers
+
+class TodoListSerializer(serializers.Serializer):
+    title = serializers.CharField(max_length=100)
+    owner_id = serializers.IntegerField(source='owner.pk')
+
+
+Теперь проверим, что наш сериализатор TodoList работает корректно:
+(последовательность команд)
+python manage.py shell
+from tasks.models TodoList
+from api.serializers import TodoListSerializer
+td = TodoList.objects.first()
+td
+Вывод:
+<TodoList: Список покупок>
+
+Это работает.
+Теперь проверим нашу серализацию:
+serializer = TodoListSerializer(td)
+serializer.data
+Вывод:
+{'title': 'Список покупок', 'owner_id': 1}
+
+И это работает.
+
+
+Теперь сделаем класс TodoItemSerializer в том же файле со следующим содержимым:
+class TodoItemSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TodoItem
+        fields = [
+            'id',
+            'title',
+            'description',
+            'create_dte',
+            'due_date',
+            'todo_list_id'
+        ]
+
+
+Теперь также проверим и этот сериализатор:
+python manage.py shell
+from tasks.models TodoItem
+from api.serializers import TodoItemSerializer
+td = TodoItem.objects.first()
+td
+Вывод:
+<TodoList: Список покупок>
+
+Это работает.
+Теперь проверим нашу серализацию:
+serializer = TodoItemSerializer(td)
+serializer.data
+
+(важный момент: в консоли может быть импортирован один сериализатор. Чтобы проверить ещё сериализатор -- напишите exit())
+
+
+Изменим класс TodoListSerializer на следующее:
+class TodoListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TodoList
+        fields = [
+            'id',
+            'title',
+            'owner_id'
+        ]
+
+Теперь добавим в TodoItem (Я, надеюсь, ты помнишь где находится) в форенки аргумент related_name='items':
+todo_list = models.ForeignKey(TodoList, models.CASCADE, related_name='items')
+
+Перенесём TodoListSerializer под TodoItemSerializer (имеется ввиду, перенести положение класса (n строки, где создаётся класс) под другой).
+И перепишем TodoListSerializer:
+class TodoListSerializer(serializers.ModelSerializer):
+    items = TodoItemSerializer(many=True, read_only=True) !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+
+    class Meta:
+        model = TodoList
+        fields = [
+            'id',
+            'title',
+            'owner_id',
+            'items', !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+        ]
+
+Теперь проверим, что наш сериализатор TodoList работает корректно:
+(последовательность команд)
+python manage.py shell
+from tasks.models TodoList
+from api.serializers import TodoListSerializer
+td = TodoList.objects.first()
+td
+Вывод:
+<TodoList: Список покупок>
+
+Это работает.
+Теперь проверим нашу серализацию:
+serializer = TodoListSerializer(td)
+serializer.data
+Вывод:
+{'id': 1, 'title': 'Список покупок', 'owner_id': 1, 'items': [{'id': 2, 'title': 'Одежда', 'description': 'раста-шапки, регги-футболка, бежевые штаны, тимберленды', 'created_date': '2025-06-05T10:33:28.378646Z', 'due_date': '2025-06-05T16:33:16Z', 'todo_list_id': 1}]}
+
+И это работает.
+
+
+
+
+
+
+
+
+
+APIview
+
+В api.view напишем следующее:
+from rest_framework import views
+from rest_framework.response import Response
+
+from api.serializers import TodoListSerializer
+from tasks.models import TodoList
+
+# Create your views here.
+class TodoListListView(views.APIView):
+    def get(self, request, **kwargs):
+        todo_lists = TodoList.objects.all()
+        serializer = TodoListSerializer(todo_lists, many=True)
+        return Response(serializer.data)
+
+Создадим файл urls.py в api со следующим содержимым:
+from django.urls import path
+from api.views import TodoListListView
+
+urlpatterns = [
+    path('lists/', TodoListListView.as_view()),
+]
+
+
+В инстолд_аппс сеттингов приложения (надеюсь не надо подробно описывать) добавим сначала rest_framework, потом api.
+И в урлы приложения добавим (тоже не буду описывать где оно находится) добавим следующее:
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('accounts/', include('allauth.urls')),
+    path('api/', include('api.urls')),!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!111
+    path("", include('tasks.urls')),
+]
+
+Теперь запустим приложение! (😁не буду говорить как, сто раз сказано здесь) и перейдём по такому адресу:
+http://127.0.0.1:8000/api/lists/
+
+Перепишем наш TodoListListView:
+from rest_framework import generics
+
+from api.serializers import TodoListSerializer
+from tasks.models import TodoList
+
+class TodoListListView(generics.ListAPIView):
+    serializer_class = TodoListSerializer
+    queryset = TodoList.objects.all()
+
+Ну и перепроверим, что рест_фрейм работает, перезапустив проект (строка 788)
+
+(можно проверить в командной строке curl -v(этот флаг для подробности) http://127.0.0.1:8000/api/lists/)
+
+
+
+
+
+
+
+
+
+Важный момент: я не буду дальше говорить где какой класс находится. Я также не буду говорить про стандартные операции (добавим в урл приложения, добавим в инстолд эппс и так далее)
+
+
+
+
+
+
+
+
+
+
+
+
+Авторизация с permission
+
+Редачим TodoListListView
+from rest_framework import generics
+from rest_framework import permissions
+
+
+from api.serializers import TodoListSerializer
+from tasks.models import TodoList
+
+class TodoListListView(generics.ListAPIView):
+    serializer_class = TodoListSerializer
+    queryset = TodoList.objects.all()
+    permission_classes = [permissions.IsAuthenticated]!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+Перепроверяем в консоли, перезапустив проект:
+curl http://127.0.0.1:8000/api/lists/
+Вывод:
+{"detail":"Authentication credentials were not provided."}
+Всё норм
+
+Дальше сделаем метод в TodoListListView:
+    def filter_queryset(self, queryset):
+        return queryset.filter(owner=self.request.user)
+
+В урлах проекта добавим:
+path('api-auth/', include('rest_framework.urls')),
+
+Переименуем TodoListListView и перенаследуем его:
+class TodoListListCreateView(generics.ListCreateAPIView):
+
+Добавим в него метод:
+    def perform_create(self, serializer):
+        return serializer.save(owner=self.request.user)
+
+Теперь можно создавать список из API
+
+Дальше нам нужно научится его получать по ид.
+
+Добавим класс в тот же файл:
+
+class TodoListRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = TodoListSerializer
+    queryset = TodoList.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+Теперь создадим permission.py в api со следующим содержимым:
+from rest_framework import permissions
+
+class IsOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if obj.owner == request.user:
+            return True
+        return False
+
+Теперь в классы пермишинов TodoListRetrieveUpdateDestroyView добавим это:
+permission_classes = [permissions.IsAuthenticated, ((((((((((((((IsOwner))))))))))))))]
+
+Теперь в урлы апишника добавим это:
+ path('lists/<int:pk>', TodoListRetrieveUpdateDestroyView.as_view()),
+
+ И перейдите по этому пути (не буду копировать, лень)
+
+
+Теперь делает с TodoItem операции:
+
+views.py
+
+class TodoItemViewSet(viewsets.ModelViewSet):
+    serializer_class = TodoListSerializer
+    queryset = TodoList.objects.all()
+    permission_classes = [permissions.IsAuthenticated]
+
+permission.py
+
+class IsListOwner(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if obj.todo_list.owner == request.user:
+            return True
+        return False
+
+Перепишем TodoItemViewSet
+
+class TodoItemViewSet(viewsets.ModelViewSet):
+    serializer_class = TodoListSerializer
+    queryset = TodoList.objects.all()
+    permission_classes = [permissions.IsAuthenticated, !!!!!!!!!1IsListOwner!!!!!!!!!!!]
+
+Перепишем урлы апишника:
+from django.urls import path, include
+from api.views import TodoListListCreateView, TodoListRetrieveUpdateDestroyView, TodoItemViewSet
+from rest_framework import routers
+
+router = routers.DefaultRouter()
+router.register('items', TodoItemViewSet, basename='item')
+
+urlpatterns = [
+    path('', include(router.urls)),
+    path('lists/', TodoListListCreateView.as_view()),
+    path('lists/<int:pk>', TodoListRetrieveUpdateDestroyView.as_view()),
+]
+
+Определим метод в TodoItemViewSet:
+class TodoItemViewSet(viewsets.ModelViewSet):
+    serializer_class = TodoItemSerializer
+    queryset = TodoItem.objects.all()
+    permission_classes = [permissions.IsAuthenticated, IsListOwner]
+
+    def filter_queryset(self, queryset):
+        return queryset.filter(todo_list__owner=self.request.user)
+
+
+
+
+
+
+
+Пагинация (разбиение на страницы)
+
+В сеттингах прилы добавим
+# REST framework
+
+REST_FRAMEWORK = {
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.LimitOffsetPagination',
+    'PAGE_SIZE': 2,
+}
+
+Перейдите на литы в браузере через апи
+
+
+
+
+
+
+
+
+
+
+
+ВАЖНЫЙ МОМЕНТ!!!!!!!
+
+В нашем проекте todo есть файл settings, в котором есть переменная SECRET_VALUE, которую можно поменять, если вы случайно закоммители этот файл
+https://django-secret-key-generator.netlify.app/ -- здесь можно сгенерить новый ключ
+SECRET_KEY = 'django-insecure-<здесь_ваш_хэш>
+
+Лучше добавьте SECRET_KEY в переменную в файл secret.py
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

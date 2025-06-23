@@ -1,0 +1,1462 @@
+В НБД данные хранятся не только в табличной форме, но и в любой другой:
+1. Графовые
+2. Колоночные
+3. Дерево
+и так далее...
+
+Импользование, когда не чёткое структурирование данных главная цель, а гибкая, высокопроизводительная и масштабированная база данных.
+
+Нормализация БД -- это метод проектирования БД, который позволяет привести базу данных к минимальной избыточности.
+
+Первая нормальная форма: В ячейке должно быть одно значение. Не два (питон, скл), а только одно (питон)
+Вторая нормальная форма: Без первого нет второго, она имеет ключ. Ключ может быть составным, то есть то есть совокупность ячеек одной строки может быть уникальной. Причём определённое значение в другой ячейке может от него зависить.
+Треться нормальная форма: Без второго нет третьего. Должна отсутствовать транзитивная зависимость. То есть неключевые стобцы не должны зависить от других неключевх столбцов.
+
+Если у человека много карт, то он может объединить карты одним номером. Это называется мастеркард
+
+Как создать базу данных?
+create database namebd;
+create user username with password 'qwerty555';
+grant all database namebd to username;
+
+С СУБД (MySQL и так далее) идут сторонние программы для работы с запроссами.
+
+Лучше устанавливать DBeaver, ибо он работает с многими СУБД.
+
+Что нужно для подключаения?
+хост
+порт
+пользователь
+пароль
+данные для подключения по SSH
+
+Вместе с установкой СУБД устанавливается и консль этого СУБД.
+Найди как-то.
+В нашем случае это будет PostgerSQL
+\l -- для отображения всех БД
+\c namebd -- подключится и работать с базой namebd
+\dt --посмотреть все таблицы БД
+psql -Upostgres -- подключится через консоль на винде
+sudo -i -u postgres и psql -- on linux
+
+Ссылка с командами: https://www.geeksforgeeks.org/postgresql-psql-commands/
+Пример простой базы данных: https://docs.yugabyte.com/preview/sample-data/northwind/
+
+git branch --delete name_branch -- удалить ветку на удалённом репозитории
+Но нужно ещё удалить ветку локально -- git branch --delete name_branch
+
+
+
+
+
+
+
+
+
+
+
+
+Как подключится к БД на Python?
+
+import psycopg2
+
+HOST = host
+DATABASE - database
+USER = user
+PASSWORD = password
+
+connection = psycopg2.connect(
+    host...(смотреть константы)
+)
+
+cursor = connection.cursor()
+cursor.execute(query)
+connection.close()
+
+
+
+
+
+
+
+
+
+select pg_typeof(1) --> integer
+select pg_typeof(1::smallimt) --> smallint
+select 1.56543143::numeric(5, 3) --> пять цифр, после точки три. 1.565
+select 1.56543143::real --> 1.565431 до 6 цифр после запятой, а double presision до 15
+
+Удалить таблицу
+drop table if exists table_name;
+
+create table chars (
+    a char(5) -- length 5
+    b varchar(5) -- length 5 is not space
+);
+
+boll в SQL  не integer, но можно преобразовать
+select(1 = 1) = bool(1)
+
+select hg_typeof('2019-12-21') --> not his understant
+select hg_typeof('2019-12-21'::date) --> date
+select '2019-12-21'::timestampt --> '2019-12-21 00:00:00'
+select '2019-12-21'::date + interval '1 month 3 days' --> '2020-01-24'
+
+Зайти в кнсль postgre
+sudo -i -u postgres
+
+
+
+
+
+    Для создания суперпользователя: CREATE USER name WITH PASSWORD 'pass' SUPERUSER. 2
+    Для создания обычного пользователя: CREATE USER name WITH PASSWORD 'pass'. 2
+    Для создания пользователя с дополнительными параметрами (например, лимит на число одновременных подключений к БД): CREATE USER name WITH PASSWORD 'pass' CONNECTION LIMIT 5. 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Запросы
+
+select name, price * count from product p -- вывести циену остатка товара по каждй позиции.
+select name, (price * count) as cost from product p -- название столбца cost
+
+select price as p from goods where p > 20 and p < 40
+то же, что и
+select price as p from goods where p between 20 and 30 только они включены
+
+ОПератон and мы можем писать хоть сколько.
+
+select * from people where region is not null
+select * from people where age in (11, 22, 33) -- если возраст равен каким-то из этих
+
+select * from people where id_command in (select id from commands where salary > 1000000) -- вывести всех людей, которые состоят в команде с зарплатой в сумме больше миллиона
+select distinct работает и с составными уникальными значениями, которые в совокупности своей представляют это уникальное значение.
+
+Ещё сложней
+
+select * from product p where exist (select 1 from order where product_id=p.product_id and cost>50) -- вывести все продукты, на которые был заказ больше 50 рублей
+select * from people order by age desc -- отсортировать всех людей в порятке убывания, если поставить desc
+select * from people order by age, salary -- сначала отсортируется по возрасту, а затем по зарплате, то есть сначала покажется:
+1 2000
+1 3000
+1 10 000
+2 4 000
+2 5000
+3 9 000
+3 23 000
+
+В where мы не можем использовать алиасы
+
+select * from people where name like 'D_ %' -- найти всех людей с именем из двух букв и на букуву D, а после второй буквф(_) пробел
+
+select 'lol' ilike 'Lol' --> True (ilike)
+
+
+
+
+
+select * from people where name similar to '(D|B)_{10,}' -- найти все имена Д или Б и после которых есть 10 символом
+
+https://postgrespro.ru/docs/postgresql/9.5/functions-matching регулярки для sql
+https://postgrespro.ru/docs/postgrespro/10/functions-formatting работа со временем
+
+
+select *,
+    case 
+    when age > 60 'old'
+    when age > 14 'v'         разделяет по группам возрастную категорию
+    else 'small
+    end age_group
+from people
+
+
+Coalesce
+nullif
+
+select *,
+    case
+    when fax is not null then fax
+    when phone is not null then phone
+    else null
+    end contact
+from people
+
+Долго писать. Не лучше ли воспользоваться другим?
+
+select *, coalesce(fax, phone) as contact from people
+
+select name, nullif(animal, 0) from people 
+
+
+
+
+
+
+
+
++--------+----------------+----------------+----------------+
+|   id   |   order_date   |  payment_date  |  shipped_date  |
++--------+----------------+----------------+----------------+
+|   1    |   2024-01-01   |      NULL      |      NULL      |
+|   2    |   2024-01-01   |   2024-01-02   |      NULL      |
+|   3    |   2024-01-02   |   2024-01-02   |   2024-01-04   |
+|   4    |   2024-01-02   |   2024-01-05   |      NULL      |
+|   5    |   2024-01-03   |   2024-01-03   |   2024-03-05   |
+|                            ...                            |
++--------+----------------+----------------+----------------+
+
+SELECT id, COALESCE(shipped_date, payment_date, order_date) AS last_date FROM orders; --> формирует три с ячейками, у которых не нол
+
++--------+--------------+
+|   ID   |  last_date   | 
++--------+--------------+
+|   1    |  2024-01-01  |
+|   2    |  2024-01-02  |
+|   3    |  2024-01-04  |
+|   4    |  2024-01-05  |
+|   5    |  2024-01-05  | 
+|           ...         |
++--------+--------------+
+
+
+
+
+
+
+select pg_typeof(1) --> integer
+select pg_typeof(cast(1 as numeric)) --> numeric
+selectpg_typeof('asdfghjkl'::char(100)) --> character
+selectpg_typeof('asdfghjkl') --> varcharacter
+
+x = 2
+y = 5
+select y/x --> 2
+select y*1.0/x --> 2.5
+
+
+select 'Hello! ' || 'How are you?' as text--> Hello! How are you? в стобце text
+select concat('Hello! ', 'How are you?') as text
+select concat_ws('Cow ', 'Hello! ', 'How are you?') --> Hello! Cow How are you?, то есть в concat_ws первым идёт разделитель.
+select length('1234 5678') --> 8
+select lower('vfvf'), upper('vfvf'), initcap('vfvf ghgh') --> vfvf, VFVF, Vfvf Gfgf
+select position('a' in 'htfasd') --> 4
+select substring("My name is George' from 1 for 4) --> My n
+select substring("My name is George' from '....$') --> взять последние 4 элемента конца строки
+select trim('    asdf   ') --> 'asdf'
+select trim(both ' xyz' from' xy   asdf   z')
+leading -- только чтоб слева убралось вместо both
+trailing -- только чтоб справа убралось вместо both
+left
+right
+
+
+
+
+
+
+
+
+
+
+Даты
+
+now()
+переменная current_date
+переменная current_time
+extract(year from data)
+extract(month from data)
+extract(day from data)
+make_date(2001, 12, 12) --> 2001-12-12 + interval '3 days 5 hours 31 minuts 2 seconds' --> другая дата ровно чрез это время.
+Сложения дат и вычитания дат происходит просто
+select to_date('10 Apr 2021', 'DD Mon YYYY') --> 2021-04-10
+select to_timestemp('10 Apr 2021 21 34 56', 'DD Mon YYYY HH24 MI SS') --> просто добавится время.
+select to_char(make_date(2021, 12, 04), 'DD.MM.YYYY')
+
+
+
+
+
+
+Join SQL
+
+1 таблица:
+
+1
+2
+3
+
+2 таблица:
+
+2
+3
+4
+
+select t1.integer, t2.integer from table1 t1 inner join table2 t2 on t1.integer = t2.integer -->
+22
+33
+
+select t1.integer, t2.integer from table1 t1 left join table2 t2 on t1.integer = t2.integer -->
+1
+22
+33
+
+select t1.integer, t2.integer from table1 t1 right join table2 t2 on t1.integer = t2.integer -->
+22
+33
+ 4
+
+select t1.integer, t2.integer from table1 t1 full join table2 t2 on t1.integer = t2.integer -->
+1
+22
+33
+ 4
+
+Но так запрос долго писать. Лучше использовать using
+
+select t1.integer, t2.integer from table1 t1 full join table2 t2 on t1.integer = t2.integer
+select t1.integer, t2.integer from table1 t1 full join table2 t2 on using(integer)
+Они идентичны
+
+
+Но есть ещё кросс джоин
+
+1 таблица:
+
+1
+2
+3
+
+Все комбинации находит
+select t1.integer, t2.integer from table1 t1 cross join tadle1 t2
+
+11
+12
+13
+21
+22
+23
+31
+32
+33
+
+
+Есть две таблицы клиентов и заказов. Нужно найти всех клиентов, у которых заказов не было.
+
+
+select fio, phone from clients where phone ~ '^84' -- вывести всех клиентов, у которых номер телефона начинается на 84
+select fio, email from clients where email ~ '@gmail.com$'
+select info from products where info ilike '%пластик%'
+select product_id, type_id, availability, cost_price, selling_price, color_id, info, (round((selling_price - cost_price) / cost_price * 100, 2)) as markup from products
+select client_id, fio from clients where client_id % 3 != 0
+select product_id as product_id, cost_price as cost_price from products where cost_price > 30 and cost_price < 100 order by cost_price desc
+select product_id, type_id, cost_price from products order by type_id, cost_price desc
+select product_id, type_id from products where type_id != 3 order by type_id
+select client_id, fio, email, length(email) as length from clients where length(email) > 15 and length(email) < 20 order by length
+select product_id, type_id, selling_price from products where (type_id = 1 and selling_price between 50 and 80) or (type_id = 3 and selling_price < 50) order by selling_price desc
+select product_id, info from products where info is not null order by product_id -- можно так проб
+select client_id, email from clients  where email similar to '_*b_*@(hotmail.com|gmail.com)' order by client_id -- разберём регулярку
+_* -- какие-то символы могет быть в неограниченном количестве
+(hotmail.com|gmail.com) -- или то, или то
+
+
+
+
+
+
+
+
+Группировка
+
+select distinct integer from integers выведет все уникальные значениями
+select integer from integers group by integer то же самое, главное до сортировки
+select people, hours_work from peoples group by people -- мы не можем указывать два стобца в селекте, потому что sql не поймёт что делать. Нужно обязательно вписать агрегирующую функцию в select
+select people, sum(hours_work) from peoples group by people -- сосчитает количество отзаботанных часов
+select p.product_name, sum(od.quantity) from order_details od join products p on od.product_id = p.product_id group by p.product_name -- пробегаемся по списку заказов и если id продукта есть в поле таблицы продуктов, то мы берём оттуда название продукта и из таблицы заказов берём количество заказанного товара. Потом группируем всё и суммируем содержимое заказов по этому продукту. Как то так.
+Заметьте: агрегатная функция актуальна с группировкой
+
+Ещё сложней:
+select od.product_id, p.product_name, sum(od.quantity) from order_details od join products p on od.product_id = p.product_id group by p.product_name
+Если мы напишем так, то СУБД не будет знать что делать p.product_name, потому что в итоге у нас получится какой-то бред.
+1  свежие помидоры  234
+   свежие помидоры
+   свежие помидоры
+   свежие помидоры
+   свежие помидоры
+   свежие помидоры
+
+И что делать? Так не выведешь. Придётся как-то сделать, чтобы один раз было.
+То есть он формирует список строк и нам просто нужно вытащить из списка строку с минимальным количеством символов.
+В качестве списка выступает name продукта.
+select od.product_id, min(p.product_name), sum(od.quantity) from order_details od join products p on od.product_id = p.product_id group by p.product_name
+
+Представим, что нам нужно подсчитать количество поступлений столов во все корпуса
+select name, quantity from corpuses
+Получаем выражение
+
+1 4
+1 3
+1 6
+2 8
+2 1
+3 2
+4 9
+4 4
+
+Не удобно, да? Не лучше ли сгруппировать?
+select name, quantity from corpuses group by name
+ОШИБКА! Потому что получили невалидное значение
+Надо применить агрегат:
+select name, sum(quantity) from corpuses group by name
+1 13
+2  9
+3  2
+4 13
+
+Но нам ещё надо посчитать количество строк с корпусом, то есть сколько раз поступала поставка:
+select number_corpus, sum(quantity)б count(*) from corpuses group by number_corpus
+1 13 3
+2 9  2
+3 2  1
+4 13 2
+
+А какие сотрудники привозили столы? Нужно вывести их имя.
+select number_corpus, sum(quantity), count(*), e.name
+from corpuses c 
+join evployees e on c.id_empoyee = e.id_empoyee
+group by number_corpus
+
+ОШИБКА! Получаем неверное значение, как в 386 строке.
+select number_corpus, sum(quantity), count(*), min(e.name)
+from corpuses c 
+join evployees e on c.id_empoyee = e.id_empoyee
+group by number_corpus
+
+А сколько раз один сотрудник привозил столы?
+select number_corpus, sum(quantity), count(*), min(e.name), cout(id_employee)
+from corpuses c 
+join evployees e on c.id_empoyee = e.id_empoyee
+group by number_corpus
+
+Теперь нам нужно узнать кто работает на каждом складе:
+select corpus, string_agg(name || ' ' || surname, ', ') from employees
+
+Теберь нужно проверить, что у каждого сотрудника есть отчество.
+select id, every(length(father_name) != 0) from employees -- вернут тру, если у каждого есть отец. То же самое с bool_and. Bool_or понятно.
+
+to_char(date, 'YYYY')
+
+Есть ещё оператор having, который пишут после группировки. То есть он фильтрует уже сгруппированную таблицу.
+В оператором где работать быстрее, ибо он фильтрует сразу до группировки.
+
+Тут нужно пояснение:
+select p.type_id, pt.type_id from product_type pt left join products p on p.type_id = pt.type_id where p.type_id is null
+
+
+
+
+
+
+
+
++---------------------------------------------------------+
+|   orderitems                                            |
++---------------------------------------------------------+
+|   order_id - номер заказа                               |
+|   item_number - номер предмета                          |
+|   product_id - идентификационный номер продукта         |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   product_type                                          |
++---------------------------------------------------------+
+|   type_id - номер типа продукта                         |
+|   type - тип продукта                                   |
+|   description - вид                                     |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   products                                              |
++---------------------------------------------------------+
+|   product_id - идентификационный номер продукта         |
+|   type_id - номер типа продукта                         |
+|   availability - наличие на складе                      |
+|   cost_price - себестоимость                            |
+|   selling_price - цена                                  |
+|   color_id - цвет                                       |
+|   info - описание                                       |
++---------------------------------------------------------+
+
+Задание
+
+Выведите названия категорий из таблицы product_type, которые не встречаются в таблице orderitems.
+Требования к решению
+
+В решении выведите следующие столбцы
+
+    type из таблицы product_type
+
+Условия сортировки
+
+Результат отсортируйте по возрастанию поля type.
+
+select pt.type from orderitems o
+join products p
+on o.product_id = p.product_id
+right join product_type pt
+on p.type_id = pt.type_id
+where o.product_id is null
+order by pt.type
+
+
+
+
+
+
+
+Задание
+
+    С помощью оператора UNION найдите продукты из таблицы products с наценкой выше 20% или с номером типа продукта 4.
+
+    Оставьте повторяющиеся строки.
+
+    Наценку представьте в %, т.е. не 0.1, а 10. Округлите до 3 знаков после запятой.
+
+    Используйте только оператор UNION, а не комбинированные условия.
+
+Требования к решению
+
+В решении выведите следующие столбцы
+
+    product_id
+    type_id
+    markup - рассчитанная наценка
+
+Условия сортировки
+
+Результат отсортируйте по убыванию поля markup.
+
+select product_id, type_id,
+round((selling_price - cost_price) / (cost_price * 100), 3)
+as markup
+from products
+where round((selling_price - cost_price) / (cost_price / 100), 3) > 20
+
+union all
+
+select product_id, type_id,
+round((selling_price - cost_price) / (cost_price / 100), 3)
+as markup
+from products
+where type_id = 4
+
+order by markup desc
+
+
+
+
+
+
+
+
+
+Дальше ещё сложнее!
+
++---------------------------------------------------------+
+|   clients                                               |
++---------------------------------------------------------+
+|   client_id - идентификационный номер клиента           |
+|   fio - ФИО клиента                                     |
+|   birthday - дата рождения                              |
+|   phone - телефон                                       |
+|   email - почта                                         |
+|   discount - скидка                                     |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   product_type                                          |
++---------------------------------------------------------+
+|   type_id - номер типа продукта                         |
+|   type - тип продукта                                   |
+|   description - вид                                     |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   orderitems                                            |
++---------------------------------------------------------+
+|   order_id - идентификатор заказа                       |
+|   item_number - номер позиции                           |
+|   product_id - идентификатор продукта                   |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   products                                              |
++---------------------------------------------------------+
+|   product_id - идентификационный номер продукта         |
+|   type_id - номер типа продукта                         |
+|   availability - наличие на складе                      |
+|   cost_price - себестоимость                            |
+|   selling_price - цена                                  |
+|   color_id - цвет                                       |
+|   info - описание                                       |
++---------------------------------------------------------+
+
++---------------------------------------------------------+
+|   orders                                                |
++---------------------------------------------------------+
+|   order_id - идентификатор заказа                       |
+|   date - дата заказа                                    |
+|   client_id - идентификационный номер клиента           |
+|   status - статус выполнения заказа                     |
++---------------------------------------------------------+
+
+Задание
+
+Выведите ФИО клиентов, которые когда-либо заказывали товары из категории "Тетради".
+Требования к решению
+
+В решении выведите следующие столбцы
+
+    fio из таблицы clients
+
+Условия сортировки
+
+Результат отсортируйте по возрастанию поля fio.
+
+select c.fio from orders o
+join clients c on o.client_id = c.client_id
+join orderitems oi on oi.order_id = o.order_id
+join products p on oi.product_id = p.product_id
+join product_type pt on pt.type_id = p.type_id
+where pt.type = 'Тетради'
+order by c.fio
+
+
+
+
+
+
+
+
+
+Оконные функции
+
+with old as (
+    select days from people -- сформировали таблицу
+)
+
+select * from a
+
+with a as (select user_id, count(*) as cnt from userentry u group by user_id)
+select * from a where cnt = (select max(cnt) from a) -- вывести максимальное значение с остальными значениями строки.
+
+А можно вот так:
+
+with a as (
+    select user_id, count(*) as cnt 
+    from userentry u 
+    group by user_id
+)
+select * from a order by cnt desc limit 1 -- лимит возвращает из отсортированного списка первый элемент (максимальный)
+
+А если мы хотим получить второй элемент?
+select * from a order by cnt desc offset 1 (скипаем один) limit 1
+
+А если у нас несколько пользователей с одинаковым максимальным значением?
+
+with a as (select user_id, count(*) as cnt from userentry u group by user_id)
+with b as (select cnt from a order by cnt desk limit 1)
+select * from a where cnt = (select cnt from b)
+
+Ну хорошо. А нам нужно это всё проранжировать:
+with a as (
+    select user_id, count(*) as cnt 
+    from userentry u 
+    group by user_id
+)
+with b as (
+    select user_id, cnt, rank() over(order by cnt desc) <ранжируем после сортировки> as rnk from a
+)
+
+А теперь что? Теперь нам нужно вывести всех людей с максимальным значением, если их несколько
+select user_id, cnt from b where rnk = 1
+
+Но функция rank может номеровать 1 2 2 4, потому что за место 3 идёт 2. Чтобы такого не было, лучше использовать dense_rank()
+
+
+
+
+
+
+
+
+
+
+
+Монотонно неубывающие периоды
+
+То есть вывод значений в определённом интервале
+
+with a as (
+	select to_char(entry_at, 'MM-DD') as dt, 
+	count(user_id) as cnt
+	from userentry u 
+	where to_char(entry_at, 'YYYY') = '2022'
+	group by dt
+)
+select * from a
+
+Вот в году количество в день для одного пользователя.
+
+ХОрошо, а если мы хотим посмотреть динамику роста столов за предыдущие два дня, сегодняшнюю и потенциальную динамику роста за следующие два дня?
+
+dinamycs as (
+    select
+        date, (сегодня)
+        lag(quantity, 2) over(order by date) as lg2,
+        lag(quantity) over(order by date) as lg,
+        quantity,
+        lead(quantity) over(order by date) as ld,
+        lead(quantity, 2) over(order by date) as ld2,
+    from tables
+)
+
+Но, чёрт возьми, нам же нужно узнать в какие пять дней был рост, верно? Этосделать можно с помощью where. Даже не буду писать
+
+
+
+
+
+
+
+
+Скользящее среднее
+
+Теперь нам нужно найти среднее 4 дней после даты
+
+dinamycs as (
+    select
+        date, (сегодня)
+        quantity,
+        lead(quantity) over(order by date) as ld,
+        lead(quantity, 2) over(order by date) as ld2,
+        lead(quantity, 3) over(order by date) as ld3,
+        lead(quantity, 4) over(order by date) as ld4,
+        (quantity + ld + ld2 + ld3 + ld4)/5.0
+    from tables
+)
+
+Заколебёшься потом добавлять. А если нужно среднее значение за следующие 100 дней? Короче, тут на помощб приходит rows between, по умолчанию которого идёт unbounded preceding, что значит "возьме все до". А нам нужно ОТ:
+
+with dinamycs as (
+    select
+        date, (сегодня)
+        quantity,
+        avg(quantity) over(order by date rows between current row and 4 following)
+    from tables
+)
+
+order by date rows between current row and 4 following - сортируем по дате строки между текущим значением и 4 следующими
+
+Теперь хочется узнать названия всех полей таблицы:
+select * from information_schema.columns
+
+Вообще-то он куча информации даёт
+Это назвается исследовательский анализ данных
+
+Сколько у нас людей имеют детей?
+select count(*) from people where childrens is not null
+
+А сколько нет? Нужно вывести их имена.
+select name from people where childrens is null
+
+
+Давайте пример обсудим:
+
+select
+    name,
+    surname,
+    coalesce(father_name, 'No father') -- если значение налл, то пишем второй аргумент
+    to_char(birthday, 'DD-MM')
+    extract(year from birthday)
+froom people
+
+
+
+ARPU и LTV, или Lifetime value, — одни из наиболее важных показателей для измерения эффективности бизнеса, при этом их часто путают. ARPU отображает средний доход от покупателя за выбранный отрезок времени, а LTV — валовую прибыль, которую приносит покупатель за всё время взаимодействия с бизнесом.
+
+Monthly Recurring Revenue переводится как «регулярный ежемесячный доход». Это одна из главных метрик для проектов, которые используют модель подписки, например, на готовое программное обеспечение. Так как клиенты повторяют оплату ежемесячно, показатель MRR относительно стабилен.
+
+Как рассчитать MRR? Рассчитать MRR просто. Просто умножьте количество ежемесячных подписчиков на средний доход на пользователя (ARPU). MRR = Количество подписчиков по ежемесячному плану * ARPU .
+
+
+
+
+Задача превращения длинной таблицы в широкую
+
+Таблица:
+
+name   key   value
+
+Иванов ФИО   Иванов Иван Иванович
+Иванов email ivan@ya.ru
+Иванов Phone +7 (888) 888 88 88
+Петров ФИО   Петров Пётр Петрович
+Петров email petr@ya.ru
+Петров Phone +7 (999) 999 99 99
+
+Как сделать широкую?
+
+select 
+    name,
+    max(case key = 'ФИО' then value end) as name,
+    max(case key = 'email' then value end) as mail,
+    max(case key = 'phone' then value end) as pnone,
+from people
+order by name
+
+name                 mail       phone
+Иванов Иван Иванович ivan@ya.ru +7 (888) 888 88 88
+Петров Пётр Петрович petr@ya.ru +7 (999) 999 99 99
+
+
+SELECT employee, COUNT(DISTINCT doc_id) AS amount
+FROM transactions
+GROUP BY employee
+HAVING COUNT(DISTINCT doc_id) > 10
+ORDER BY amount DESC
+
+Where не поддкрживает агрегатные функции
+
+
+select employee, sum(sum)as summ
+from transactions
+where type = 1
+group by employee
+order by summ
+limit 1
+Вывести человека с минимальной суммой  накоплений в чеках
+
+select to_char(date, 'DD-MM') as date2, 
+count(distinct doc_id) as amount
+from transactions
+where to_char(date, 'YYYY-MM-DD') 
+between '2023-05-17' and '2023-05-19'
+group by date2
+Количество цеков впериоде
+
+
+
+
+
+
+
+
+
+
+
+
+Как использовать подзапросы в фильтрации строк?
+
+Захотим получить цену выше среднего значения:
+select * from products where price > (select avg(price) from products)
+
+хотим узнать какие продукты вывозила логистическая компания под номенром 1
+select * from order_details od where product_id in (select product_id from products where suppliers_id = 1)
+Это не связанные подзапросы.
+А есть связанные! Коррелируемые.
+
+select * from order_details od where od.employee = 'Ivan' and exists(select * from products where product_id = 3)
+
+Можно ещё писать коррелируемые подзапросы в select
+select price, quantity, (select name from product p where od.product_id = p.product_id) from order_details
+
+У fromа можно.
+
+Есть такая функция date_trunc('year', '2023, 07, 30'). Она выведет 2023, 01, 01, 00:00:00
+
+select max(date_trunc('year', '2023-08-01')) - min(date_trunc('year', '2025-07-21')) посчитает количество дней между годами
+Можем выести количество сотрудников, которые проработали больше 640 дней
+select employee from employees having (getdate() - date) > '640 days'
+
+
+-- какой сотрудник сколько времени работает
+-- date_trunc берет начальное состояние
+--считаем максимальную, минимальную  дату
+select max(date_trunc('month', o.order_date)) - min(date_trunc('month', o.order_date)) as dt, e.last_name || ' ' || e.first_name as name 
+from orders o
+join employees e 
+on o.employee_id = e.employee_id
+group by e.last_name || ' ' || e.first_name
+-- только те сотрудники, между первым и последним заказом которых прошло более 640 дней
+having max(date_trunc('month', o.order_date)) - min(date_trunc('month', o.order_date)) > interval '640 days'
+
+
+-- как переписать запрос с помощью подзапросов
+-- 3. Вычислим значение в агрегированных данных
+select name, mx-mn as diff
+from (
+-- 2. Сгруппируем таблицу по сотрудникам
+    select name, max(dt) as mx, min(dt) as mn
+    from (
+-- 1. Cформуруем таблицу, где будет дата и время
+        select date_trunc('month', o.order_date) as dt, e.last_name || ' ' || e.first_name as name 
+        from orders o
+        join employees e 
+        on o.employee_id = e.employee_id
+        ) t
+    group by name ) t2
+where mx-mn > interval '640 days'
+
+
+union собирает всех
+
+select user from run -- пользователи, которые запускали код, а есть юзеры, которые не запускали код, но проверяли сразу же
+union
+select user from check -- пользователи, которые сразу проверяли код, а есть юзеры, которые сразу отпраляли код.
+union
+select user from send
+
+То есть выводит всех юзеров, а если нам надо посмотреть сколько чего каждый делал, то:
+
+select user from run
+union all
+select user from check
+union all
+select user from send
+
+То есть он выведет все строки
+
+А если мы хотим вывести всех пользователей, которые и запускали, и проверяли, и отправляли?
+
+select user from run
+intersect
+select user from check
+intersect
+select user from send
+
+В мускуле этого оператора нет
+
+Ещё есть эксепт, который проверяет наличие поля в другой таблице
+
+select user from run
+except
+select user from check
+
+
+
+Есть у нас така таблица
+
+1 Питер
+2 Питер
+3 Ростов
+4 Питер
+5 Токио
+6 Питер
+7 Москва
+8 Ростов
+9 Питер
+
+И мы хотим узнать какой id был первый в городе.
+
+Если мы напишем так, не указав в over ничего:
+select city, first_value(id) over()
+то он выведет все города с id 1, потому что он берёт первое значение из столбца id, а первое значение как раз 1.
+
+Если написать так:
+select city, first_value(id) over(partition by city) from employees e
+То тогда он найдёт последнего человека из города
+Питер 9
+Питер 9
+Ростов 8
+Питер 9
+Токио 5
+Питер 9
+Москва 7
+Ростов 8
+Питер 9
+
+А нам нужно, чтобы первого:
+select city, first_value(id) over(partition by city order by id) from employees e
+То есть запрос сначала отсортирует по убаванию и over возьмёт последнее значение из списка.
+Питер 1
+Питер 1
+Ростов 1
+Питер 1
+Токио 5
+Питер 1
+Москва 7
+Ростов 3
+Питер 1
+
+
+
+
+
+
+
+А если мы укажим ластвалуе:
+select city, last_value(id) over(partition by city order by id) from employees e
+То он возьмёт все строки
+То есть вот есть таблица людей, и нам нужно найти последнего:
+Человек 1
+Человек 2
+Человек 3
+Человек 4
+Человек 5
+
+Он не выведет 5, а выведет сначала 1, потом 2 и так далее, потому что он ищет максимальное значение по >=, то есть:
+Человек 1 >= Человек 1? y
+Человек 1 >= Человек 2? y
+Человек 1 >= Человек 3? y
+Человек 1 >= Человек 4? y
+Человек 1 >= Человек 5? y
+
+Но это же хрень? Нам так не надо. Лучше пускай находит последнее значение и сравнивает с ним.
+Человек 1 >= Человек 5 -- сохраняется как последнее
+
+Человек 1 >= Человек 5? n выводим Человек 5
+Человек 2 >= Человек 5? n выводим Человек 5
+Человек 3 >= Человек 5? n выводим Человек 5
+Человек 4 >= Человек 5? n выводим Человек 5
+Человек 5 >= Человек 5? y 
+
+То есть пишем другой запрос
+select city, last_value(id) over(partition by city order by id range between unbounded preceding and unbounded following) from employees e order by id
+                                                               диапазон между первым   значением  и  последним значением
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+Какие есть оконные функции?
+select *, row_number() over() from orders -- пронумерует все найденные строки
+select order_id, row_number(partition by product_id) over from order -- находим все заказы с определённым продуктом
+То есть вывод будет такой
+1  1 продукт
+3  1 продукт
+14 1 продукт
+25 1 продукт
+86 2 продукт
+35 2 продукт
+12 2 продукт
+
+Допустим нам нужно узнать какие люди родились в определённую дату:
+select date, name, row_numbers() over(patition by name order by date)
+
+
+А если мы хотим проранжировать?
+Таблица
+34
+2
+13
+45
+54
+54
+45
+2
+13
+34
+
+select *, rank() over(group by integer) from integers
+34 1
+2  1
+13 1
+45 1
+54 1
+
+Что за хрень? Почему один?
+На питоне мы написали вот так:
+Хрень какая-то...
+select integer, rank() over(order by integer desk)
+Теперь всё окей!
+
+for i in range(1, len(integers)):
+    print(integers[i], i)
+
+
+таблица
+id qu
+1  120
+1  54
+1  222
+1  2
+2  456
+2 36
+2  23
+2  36
+2  1234
+
+select id, qu, rank() over(partition by id  order by qu desc) from products order by id, qu
+1 2    4
+1 54   3
+1 120  2
+1 222  1
+
+2 23   4
+2 36   3
+2 36   3
+2 456  5
+2 1234 6
+
+Почему сразу пять? Без разрывов, пожалуйста.
+select id, qu, dense_rank() over(partition by id  order by qu desc) from products order by id, qu
+1 2    4
+1 54   3
+1 120  2
+1 222  1
+
+2 23   4
+2 36   3
+2 36   3
+2 456  4
+2 1234 5
+
+
+ 
+
+
+
+
+
+Задание
+Выведите:
+
+номер кассы;
+дату покупки без учета времени;
+порядковый номер строки в рамках конкретной кассы.
+Требования к решению
+В решении выведите следующие столбцы
+
+cash_id
+date
+num - рассчитанная нумерация строк
+Условия сортировки
+Результат отсортируйте по номеру кассы и порядковому номеру строки - все поля по возрастанию.
+
+SELECT cash_id,
+       DATE(date) AS date,
+       ROW_NUMBER() OVER(PARTITION BY cash_id) AS num
+FROM transactions t
+ORDER BY cash_id, num
+
+
+
+Разбейте данные из таблицы transactions на группы по сотрудникам. Для каждого сотрудника проранжируйте номера чеков.
+
+Расчет ранга должен идти по убыванию индификатора чека.
+
+Если для одного сотрудника встречается несколько одинаковых значений, то им должен быть присвоен одинаковый ранг. При этом следующий ранг должен идти с разрывом, например:
+
+select
+    employee,
+    type,
+    doc_id,
+    rank() over(partition by employee order by doc_id) as rnk
+from transactions order by employee desc, rnk
+
+
+
+
+
+Есть методы для манипулироваания данных (select и всё такое)
+Есть методы языка определения данных (create, drop, alter, truncate(очистит))
+
+create table if not exists demo (
+    id serial primary key,
+    name varchar(30) not null default 'name',
+    date date check (date > '1900.01.01'),
+    count numeric unique, -- то же самое, что и constraint count unique(conut) в конце
+    constaint valid check(count > 0) -- проверяем в конце процесса
+)
+
+drop table if exists demo
+insert into demo(id, name, date, count) values(1, 'George', '1993-01-01', 45)
+insert into demo values(1, 'George', '1993-01-01', 45) -- то же самое
+
+truncate table demo -- очищает всю таблицу
+
+insert into demo values
+(1, 'George', '1993-01-01', 45)
+(1, 'George', '1993-01-01', 45)
+(1, 'George', '1993-01-01', 45)
+(1, 'George', '1993-01-01', 45) -- вставятся все
+
+Чтобы сделать фореднкей ключ
+
+create table if not exists demo1 (
+    id serial primary key
+)
+
+create table if not exists demo2 (
+    id serial primary key
+    d_id serial,
+    constaint fk_demo
+    foreing key (d_id)
+    references demo1(id)
+    on delete set null --при удалении в связанной таблице значениепереписывается на нал
+    on update cascade -- при обновлении связанной строки другой таблицы, обновляться будет и значение в этой таблице.
+)
+
+delete from demo1 where id = 3
+update demo1 set id = 100 where id = 3
+дроп и транкейт -- это ддл
+делете -- это дмл
+create table a as select * from demo2 where id > 1
+create table a as select * from demo2 where 1 = 0 -- создаст таблицу со структурой, но без данных
+insert into demo3 select * from demo2 --вставьте туда всё
+
+А если мы хотим посмотреть все строки, которые вставились?
+insert into demo 3 select * from demo2 returning *
+
+alter table demo alter column id type serial -- измеяет тип id таблицы demo с int  на serial
+                              name drop defaut -- удаляет значение по умолчанию
+                 rename id to id_d -- переименовывем столбцы
+alter table demo2 rename demo 3 -- переименовываем таблицу
+alter table demo2 add constraint fk_demo foreing key (d_id) references demo1(id) on delete set null on update cascade -- добавляет форкей
+
+
+
+
+
+Хотим сохранить базу данных как txt- файл?
+В терминале: pg_dump -U username name_db > <путь до папки>
+
+Power BI -- управление БД с UI
+
+
+
+
+
+
+
+Как подключится к БД в Python?
+
+orm -- абстрагирование от SQL, работа с базой с помощью команд. В питоне всё это сложно.
+Есть библиотеки коннекторы
+
+from psycopg2 import connect
+
+HOST
+PORT
+DATABASE
+USER
+PASSWORD
+
+connection = sqlite.connect(
+    host = HOST
+    port = PORT
+    database = DATABASE
+    user = USER
+    password = PASSWORD
+)
+
+cursor = connection.cursor()
+quary = "select * from tb"
+exec = cursor.execute(quary) -- не вернёт ничего. 
+res = cursor.fetchall() -- сохранит в переменнцю в формате массива из кортежей все данные из таблицы. То есть он ссылается на exec и берёт оттуда все значения
+cursor.fetchone() --  будет возвращать по одной строке. То есть сначала первую, потом вторую и так далее.
+
+Крсор сам массив, но мы его не выведем. В цикле можно добавлять каждый элемент.
+
+Если мы хотим получить всех людей 30-ти лет:
+
+query = """select * from peoples where age = %s""" --%s - люое строковое значение.
+cursor.execute(query, (5, ))
+
+Найти количество заказов по уникальному индексу
+
+query = '''select distinct order_id from orders'''
+cursor.execute(query)
+res = cursor.fetchall()
+
+query = '''select distinct from peoples where age = %s'''
+
+for row in res:
+    order_id = row[0]
+    cursor.execute(query, (order_id, ))
+    orders = cursor.fetchall()
+    print(f'id {order_id}: {len(orders)})
+
+Мы хотим проверить правильность подстановки переменных:
+cursor.mogrify(query, (order_id, ))
+
+Вставляем данные, но insert не вставится в БД без коммита
+connection.commit()
+
+Но если нам лом писать каждый раз коммит, то есть автокоммит, который по умлчанию фалзе. Изменим
+connection.autocommit = True
+Вуаля! Теперь нам не надо писать писать каждый раз конструкцию connection.commit()
+
+Нам же не надо создава 1000 подключений для 1000 пользователей? Не лучше ли создаьть синглтон?
+
+class Database:
+  def __new__(cls, *args, **kwargs):
+    if not hasattr(cls, 'instance'):
+      cls.instance = super().__new__(cls)
+    return cls.instance
+
+  def __init__(self, host, port, database, user, password, autocommit=False):
+    self.connection = psycopg2.connect(
+        host=host,
+        port=port,
+        database=database,
+        user=user,
+        password=password,
+    )
+    self.connection.autocommit = autocommit
+    self.cursor = self.connection.cursor((cursor_factory=RealDictCursor))
+
+
+А если мыхотим узнать названия столбцов каждого значения? Тогда из модуля psycopg2 импортим ещё RealDictCursor и пишем значение, как в строке 1327
+
+
+update products set price -= 10 where product = 1 -- меняет цену у первого товара
+rollback -- откатить изменения
+
+SELECT usename FROM pg_user; -- посмотреть все пользователей
+
+\l вывести все БД
+alter database yakoroff owner to george2066; изменить владельца.
+
+
+alter table Action rename actionType_id to action_type_id
+alter table Event rename externalId to external_id
+alter table Action rename eventType_id to event_type_id
+with events_id (
+    select id from Event where external_id = 'КС-4682-2024'
+    and event_type_id = 150
+    and deleted = 0
+), actions_id as (
+    select id from Action where action_type_id = 16741
+    and event_id in events_id
+), action_properties_id as (
+    select id from ActionProperty where type_id = 33245
+    and deleted  = 0
+    and action_id in actions_id
+)
+select id, 'index', value from ActionProperty_Reference where id in action_properties_id
+
+with events_id as (
+    select id from Event where external_id = 'КС-39572-2024'and event_type_id = 129 and deleted = 0
+), actions_id as (
+    select id from Actionwhere action_type_id = 16770 and event_id in events_id
+), action_properties_id as (
+    select id from AcionProperty where type_id  = 33519 nd deleted = 0 and action_id in actions_id
+)
+select id, 'index', value from ActionProperty_Reference where id in action_properties_id
+
+
+
+
+Что такое транзация?
+
+Констрейнты -- ограничения в БД
+Транзакция -- последовательные действия с БД, котораяы считаетсяч за единую операцию.
+Либо выполняются все, либо ни одной.
+
+begin; -open transactions
+    update many set sum - {count} where name = 'Gosha';
+    update many set sum + {count} where name = 'Masha';
+commit;
+
+Атомарность -- недилима, то есть при переводе одного человека другому, не может быть такого, чтобы у одного отнялась сумма, а к другому прибавилась. Либо всё, либо ничего.
+Согласованность -- данные после транзакции всегда будут корректны и будут всегда соответствовать бизнес-логике. То есть сумма на счету не может быть отрицательной (корректность), не может быть отправлена несуществующему пользователю (целостность)
+Изоляционность -- две транзакции могут выполнятся параллельно и в конце получить в сумме консистентное значение
+Надёжность -- гарант того, что транзакция обеспечена безопасностью, то есть данные сохранятся в случае отключения электричества.
+
+Журналирование, read-ahead logging -- это подход, при котором все запросы подписываются в лог перед их выполнением.
+Репликация -- копирование данных на несколько серверов.
+
+ACID
+
+Четыре уровня изоляции 
+
+Серия -- последовательно (строгост 1)
+Репитбл рид -- данные не изменятся в ходе движения транзакции
+Рид коммит -- гарант, что транзакция видит только те изменения, которые были произведены другими транзакциями.
+рид анкоммит -- видит те изменения, которые не были зафиксированными другими транзакциями
+
+Как дать уровень изоляции транзации?
+
+begin;
+    set transaction isolation level serializable;
+    update many set sum - {count} where name = 'Gosha';
+    update many set sum + {count} where name = 'Masha';
+commit;
+
+А если мы сделали транзакцию, состоящую из двух запросов, и поняли, что второй запрос нам нахер не нужен? Тогда надо сейвнуть первую:
+begin;
+    set transaction isolation level serializable;
+    update many set sum + {count} where name = 'Masha';
+    savepoint inner_transaction;
+    update many set sum = sum * 1.1 where name = 'Masha'; -- ой, а это нам не нужно. Откатим до точки сохранения.
+    rollback savepoint inner_transaction;
+    update many set sum = sum - {count} where name = 'Gosha';
+commit;
+
+Lock-механизм, который помогает изолировать транзакции, то есть блокировать целые строки или даже таблицы.
+
+Теперь нам нужно заблкирвать транзакцию на пределённм месте, чтбы птм данные бнвить, т есть запретить другим кмандам испльзвать ту же стрку:
+
+select * from people where age for update, т есть н ищет кманду, где бнвляется взраст у челвека
+
+Нам нужн, чтбы к таблице никто не бращался, пка мы не завершили транзакцию
+lock table only time in lockmode nowait
+
+У БД есть deadlock, т есть два замка заблкирвали друг друга
+Если тпаке взникл, т бд сама решает, каую транзакцию вынужденн станвить
+
+Как эт выплнять в питнвскм кде?
+
+Делаем импрт, пдключаем библитеку и туда
+import psycopg2 as pg
+connection = pg.connect(dbname='name', user='user', password='password')
+cursor = connection.cursor()
+cursor.execute('create table if not exists...(дна стрка с данными о челвеке)')
+cursor.execute('insert into people...')
+cursor.fetchone()
+connection.commit()
+cursor.close()
+connection.close()
+
+Если над сделать нескльк транзакций днвременн, т есть параллельн, т тгда следует сздать два пдключения, птму чт запрсы и пдключения неразрывн связаны.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
