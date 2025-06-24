@@ -1,3 +1,3 @@
 mutmut run
-mutmut html
+mutmut browse
 open html/index.html
