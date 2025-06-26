@@ -2,14 +2,14 @@ import smtplib
 from mailbox import Message
 
 import pytest
-from more_itertools.more import side_effect
 from pytest_mock import MockFixture
 from faker.contrib.pytest.plugin import faker
 from faker.proxy import Faker
 
 # Mock
 class MailClient:
-    def send_email(self, text: str, send_to_person: str):
+    @staticmethod
+    def send_email(text: str, send_to_person: str):
         text = f'{text}\n\n{send_to_person}'
         message = Message(text)
         smtp_client = smtplib.SMTP(
@@ -75,13 +75,12 @@ def test_book_creation(price):
     book = Book(price)
     assert book.price == price
 
-@pytest.mark.parametrize(
-    'price', [-400, -600, -5000]
-)
+
 def test_error_create_book(faker: Faker):
-    price = faker.pydecimal(positive=False, max_value=0)
+    price = faker.pyint(max_value=0)
     with pytest.raises(ValueError) as exc_info:
         Book(price)
+    print(exc_info.value)
     assert str(exc_info.value) == "price mast been more zero"
 
 
